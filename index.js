@@ -30,11 +30,8 @@ document.getElementById("submit").onclick = async function () {
       // Format the address to create a valid file name (remove spaces, commas, etc.)
       const formattedAddress = address.replace(/\s+/g, "_").replace(/[,]/g, "");
 
-      console.log("formattedAddress", formattedAddress); // Log for debugging
-
       // Construct the URL for the .fml file using the dynamic ID
       const fmlUrl = `https://fmlpub.s3-eu-west-1.amazonaws.com/${dynamicId}.fml?editor_version=2.30.182&auth_token=undefined`;
-      console.log(fmlUrl); // Log for debugging
 
       // Fetch the .fml file
       const fmlResponse = await fetch(fmlUrl, {

@@ -1,6 +1,6 @@
 document.getElementById("submit").onclick = async function () {
   const fundaUrl = document.getElementById("url").value;
-  const PROXY_URL = "/proxy"; // Using relative path
+  const PROXY_URL = "/api/proxy"; // Updated to use Vercel's API route
 
   try {
     // Fetch the Funda page through our proxy

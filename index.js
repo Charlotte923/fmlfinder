@@ -13,7 +13,8 @@ document.getElementById("submit").onclick = async function () {
     );
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorData = await response.json();
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
     }
 
     const pageText = await response.text();
@@ -24,9 +25,7 @@ document.getElementById("submit").onclick = async function () {
     const doc = parser.parseFromString(pageText, "text/html");
     const nuxtDataScript = doc.querySelector("#__NUXT_DATA__");
     if (!nuxtDataScript) {
-      throw new Error(
-        "The page does not contain a <script> with id='__NUXT_DATA__'"
-      );
+      throw new Error("Kon de pagina niet laden. Probeer de directe link naar de plattegrond pagina.");
     }
 
     console.log("Found NUXT data script"); // Debug log
@@ -54,7 +53,7 @@ document.getElementById("submit").onclick = async function () {
       );
 
       if (!fmlResponse.ok) {
-        throw new Error(`Failed to fetch FML file: ${fmlResponse.status}`);
+        throw new Error(`FML bestand niet gevonden. Status: ${fmlResponse.status}`);
       }
 
       const fmlBlob = await fmlResponse.blob();
@@ -89,11 +88,18 @@ document.getElementById("submit").onclick = async function () {
         </div>
       `;
     } else {
-      throw new Error("No .fml ID or address found on this page");
+      throw new Error("Geen FML ID of adres gevonden op deze pagina. Probeer de directe link naar de plattegrond pagina.");
     }
   } catch (err) {
     console.error("Error:", err); // More detailed error logging
-    alert(`Error: ${err.message}`); // Show error to user
+    const errorMessage = document.createElement('div');
+    errorMessage.style.color = 'red';
+    errorMessage.style.marginTop = '10px';
+    errorMessage.innerHTML = `
+      <p><strong>Error:</strong> ${err.message}</p>
+      <p style="font-size: 0.9em;">Tip: Gebruik de directe link naar de plattegrond pagina van Funda.</p>
+    `;
+    document.getElementById('submit').insertAdjacentElement('afterend', errorMessage);
   }
 };
 

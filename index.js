@@ -1,105 +1,107 @@
 document.getElementById("submit").onclick = async function () {
   const fundaUrl = document.getElementById("url").value;
-  const PROXY_URL = "/api/proxy"; // Updated to use Vercel's API route
+  const PROXY_URL = "/api/proxy";
 
   try {
-    console.log("Fetching URL:", fundaUrl); // Debug log
-    // Fetch the Funda page through our proxy
-    const response = await fetch(
-      `${PROXY_URL}?url=${encodeURIComponent(fundaUrl)}`,
-      {
-        method: "GET",
-      }
-    );
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-    }
-
-    const pageText = await response.text();
-    console.log("Received response length:", pageText.length); // Debug log
-
-    // Extract the JSON data from the <script> tag with id="__NUXT_DATA__"
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(pageText, "text/html");
-    const nuxtDataScript = doc.querySelector("#__NUXT_DATA__");
-    if (!nuxtDataScript) {
-      throw new Error("Kon de pagina niet laden. Probeer de directe link naar de plattegrond pagina.");
-    }
-
-    console.log("Found NUXT data script"); // Debug log
-    const nuxtDataJson = JSON.parse(nuxtDataScript.innerHTML);
-
-    // Extract the project ID and address
-    const dynamicId = findProjectId(nuxtDataJson);
-    const address = findAddressInNuxtData(nuxtDataJson);
-
-    console.log("Found ID:", dynamicId); // Debug log
-    console.log("Found address:", address); // Debug log
-
-    if (dynamicId && address) {
-      const formattedAddress = address.replace(/\s+/g, "_").replace(/[,]/g, "");
-      // Construct the URL for the .fml file using the dynamic ID
-      const fmlUrl = `https://fmlpub.s3-eu-west-1.amazonaws.com/${dynamicId}.fml`;
-      console.log("Attempting to fetch FML from:", fmlUrl); // Debug log
-
-      // Fetch the .fml file through our proxy
-      const fmlResponse = await fetch(
-        `${PROXY_URL}?url=${encodeURIComponent(fmlUrl)}`,
-        {
-          method: "GET",
-        }
+    // Extract the listing ID from the URL
+    const matches = fundaUrl.match(/\/(\d+)(\/|$)/);
+    if (!matches) {
+      throw new Error(
+        "Kon geen geldig Funda ID vinden in de URL. Controleer of je de juiste URL hebt ingevoerd."
       );
-
-      if (!fmlResponse.ok) {
-        throw new Error(`FML bestand niet gevonden. Status: ${fmlResponse.status}`);
-      }
-
-      const fmlBlob = await fmlResponse.blob();
-      const downloadLink = document.createElement("a");
-      const url = window.URL.createObjectURL(fmlBlob);
-      downloadLink.href = url;
-      downloadLink.download = `${formattedAddress}.fml`;
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      window.URL.revokeObjectURL(url);
-
-      const giphyList = [
-        "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWhub2llem9qODR2N2FidjE1aGczMnRkenB3djNra2phbWt6ejhrayZlcD12MV9naWZzX3NlYXJjaCZjdD1n/a0h7sAqON67nO/giphy.gif",
-        "https://media.giphy.com/media/uTuLngvL9p0Xe/giphy.gif",
-        "https://media.giphy.com/media/gjiE1RizLmRCBZ3cbW/giphy.gif",
-        "https://media.giphy.com/media/Sculsk7YRnRpvMZrR3/giphy.gif",
-        "https://media.giphy.com/media/XreQmk7ETCak0/giphy.gif",
-        "https://media.giphy.com/media/z5BOu8NJ3PAI7Jk3Yz/giphy.gif",
-        "https://media.giphy.com/media/TSXSPZUSW0Lr9mYm8h/giphy.gif",
-        "https://media.giphy.com/media/goKgmdgnBfbYhsZFy9/giphy.gif",
-      ];
-      const randomGiphy =
-        giphyList[Math.floor(Math.random() * giphyList.length)];
-
-      document.body.innerHTML = `
-        <div class="main" style="text-align:center; margin-top:50px;">
-          <h1>Download successvol! ✅</h1>
-          <p>Het bestand "${formattedAddress}.fml" is gedownload en veilig weg gestopt in je Downloads map! 📁 </p>
-          <img src="${randomGiphy}" alt="Success GIF" style="width:400px; height:auto;"/>
-          <br/><br/>
-          <button onclick="window.location.reload()">Nog een keeeeeer!</button>
-        </div>
-      `;
-    } else {
-      throw new Error("Geen FML ID of adres gevonden op deze pagina. Probeer de directe link naar de plattegrond pagina.");
     }
+
+    const listingId = matches[1];
+    console.log("Found listing ID:", listingId);
+
+    // Try a few common FML IDs based on the listing ID
+    const possibleFmlIds = [
+      listingId,
+      `${listingId}1`,
+      `${listingId}2`,
+      `${listingId}0`,
+    ];
+
+    let fmlData = null;
+    let successfulId = null;
+
+    // Try each possible FML ID
+    for (const fmlId of possibleFmlIds) {
+      const fmlUrl = `https://fmlpub.s3-eu-west-1.amazonaws.com/${fmlId}.fml`;
+      console.log("Trying FML URL:", fmlUrl);
+
+      try {
+        const fmlResponse = await fetch(
+          `${PROXY_URL}?url=${encodeURIComponent(fmlUrl)}`,
+          {
+            method: "GET",
+          }
+        );
+
+        if (fmlResponse.ok) {
+          fmlData = await fmlResponse.blob();
+          successfulId = fmlId;
+          break;
+        }
+      } catch (error) {
+        console.log("Failed attempt with ID:", fmlId);
+      }
+    }
+
+    if (!fmlData) {
+      throw new Error(
+        "Kon geen FML bestand vinden. Probeer een andere URL of probeer het later opnieuw."
+      );
+    }
+
+    // Extract address from the URL for the filename
+    const urlParts = fundaUrl.split("/");
+    const addressIndex = urlParts.indexOf("huis") + 1;
+    const address = addressIndex > 0 ? urlParts[addressIndex] : "funda";
+    const formattedAddress = address.replace(/[^a-zA-Z0-9]/g, "_");
+
+    // Download the file
+    const downloadLink = document.createElement("a");
+    const url = window.URL.createObjectURL(fmlData);
+    downloadLink.href = url;
+    downloadLink.download = `${formattedAddress}_${successfulId}.fml`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    window.URL.revokeObjectURL(url);
+
+    const giphyList = [
+      "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWhub2llem9qODR2N2FidjE1aGczMnRkenB3djNra2phbWt6ejhrayZlcD12MV9naWZzX3NlYXJjaCZjdD1n/a0h7sAqON67nO/giphy.gif",
+      "https://media.giphy.com/media/uTuLngvL9p0Xe/giphy.gif",
+      "https://media.giphy.com/media/gjiE1RizLmRCBZ3cbW/giphy.gif",
+      "https://media.giphy.com/media/Sculsk7YRnRpvMZrR3/giphy.gif",
+      "https://media.giphy.com/media/XreQmk7ETCak0/giphy.gif",
+      "https://media.giphy.com/media/z5BOu8NJ3PAI7Jk3Yz/giphy.gif",
+      "https://media.giphy.com/media/TSXSPZUSW0Lr9mYm8h/giphy.gif",
+      "https://media.giphy.com/media/goKgmdgnBfbYhsZFy9/giphy.gif",
+    ];
+    const randomGiphy = giphyList[Math.floor(Math.random() * giphyList.length)];
+
+    document.body.innerHTML = `
+      <div class="main" style="text-align:center; margin-top:50px;">
+        <h1>Download successvol! ✅</h1>
+        <p>Het bestand "${formattedAddress}_${successfulId}.fml" is gedownload en veilig weg gestopt in je Downloads map! 📁 </p>
+        <img src="${randomGiphy}" alt="Success GIF" style="width:400px; height:auto;"/>
+        <br/><br/>
+        <button onclick="window.location.reload()">Nog een keeeeeer!</button>
+      </div>
+    `;
   } catch (err) {
-    console.error("Error:", err); // More detailed error logging
-    const errorMessage = document.createElement('div');
-    errorMessage.style.color = 'red';
-    errorMessage.style.marginTop = '10px';
+    console.error("Error:", err);
+    const errorMessage = document.createElement("div");
+    errorMessage.style.color = "red";
+    errorMessage.style.marginTop = "10px";
     errorMessage.innerHTML = `
       <p><strong>Error:</strong> ${err.message}</p>
-      <p style="font-size: 0.9em;">Tip: Gebruik de directe link naar de plattegrond pagina van Funda.</p>
+      <p style="font-size: 0.9em;">Tip: Gebruik een URL van een Funda listing (bijvoorbeeld: https://www.funda.nl/koop/plaats/straat-1/12345678/)</p>
     `;
-    document.getElementById('submit').insertAdjacentElement('afterend', errorMessage);
+    document
+      .getElementById("submit")
+      .insertAdjacentElement("afterend", errorMessage);
   }
 };
 

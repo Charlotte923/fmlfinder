@@ -1,15 +1,15 @@
 document.getElementById("submit").onclick = async function () {
   const fundaUrl = document.getElementById("url").value;
+  const PROXY_URL = "/proxy"; // Using relative path
 
   try {
-    // Fetch the Funda page
-    const response = await fetch(fundaUrl, {
-      method: "GET",
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/118.0",
-      },
-    });
+    // Fetch the Funda page through our proxy
+    const response = await fetch(
+      `${PROXY_URL}?url=${encodeURIComponent(fundaUrl)}`,
+      {
+        method: "GET",
+      }
+    );
 
     const pageText = await response.text();
     document.getElementById("fundapagina").innerHTML = pageText; // For debugging
@@ -32,15 +32,14 @@ document.getElementById("submit").onclick = async function () {
     if (dynamicId && address) {
       const formattedAddress = address.replace(/\s+/g, "_").replace(/[,]/g, "");
       // Construct the URL for the .fml file using the dynamic ID
-      const fmlUrl = `https://fmlpub.s3-eu-west-1.amazonaws.com/${dynamicId}.fml`; 
-      // Fetch the .fml file
-      const fmlResponse = await fetch(fmlUrl, {
-        method: "GET",
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/118.0",
-        },
-      });
+      const fmlUrl = `https://fmlpub.s3-eu-west-1.amazonaws.com/${dynamicId}.fml`;
+      // Fetch the .fml file through our proxy
+      const fmlResponse = await fetch(
+        `${PROXY_URL}?url=${encodeURIComponent(fmlUrl)}`,
+        {
+          method: "GET",
+        }
+      );
 
       if (fmlResponse.ok) {
         const fmlBlob = await fmlResponse.blob();

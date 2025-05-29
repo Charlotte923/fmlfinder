@@ -4,17 +4,39 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FML Finder</title>
-    <link rel="stylesheet" href="styles.css" />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        text-align: center;
+      }
+      input[type="text"] {
+        width: 80%;
+        padding: 10px;
+        margin: 10px 0;
+      }
+      button {
+        padding: 10px 20px;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #45a049;
+      }
+    </style>
   </head>
   <body>
-    <div class="main">
-      <h1>FML FINDER</h1>
-      <br />
-      <input placeholder="Plak hier de funda link" type="text" id="url" /><br />
-      <button type="button" id="submit">STUUR</button>
-      <p>mede mogelijk gemaakt door je fantastische zusje 👩‍🦰</p>
-    </div>
-    <script src="./index.js"></script>
-    <div id="fundapagina"></div>
+    <h1>FML Finder</h1>
+    <p>Plak hier de Funda URL:</p>
+    <input type="text" id="url" placeholder="https://www.funda.nl/..." />
+    <br />
+    <button id="submit">Download FML</button>
+    <div id="fundapagina" style="display: none;"></div>
+    <script src="index.js"></script>
   </body>
 </html>
